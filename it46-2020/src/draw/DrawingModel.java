@@ -62,7 +62,7 @@ public class DrawingModel {
 	        return shapes.size();
 	    }
 	    
-	    // ========== SELEKCIJA ==========
+
 	    public int getSelectedCount() {
 	        int count = 0;
 	        for (Shape s : shapes) {

@@ -629,25 +629,23 @@ public class FrmDraw extends JFrame {
 						editHexagon.getBtnInnerColor().setBackground(((HexagonAdapter) selectedShape).getInnerColor());
 						editHexagon.getOkButton().setText("Edit");
 						editHexagon.setVisible(true);
-						if(editHexagon.isOk) {
-							HexagonAdapter hEdited = new HexagonAdapter();
-							
+						if(editHexagon.isOk) {			
 							try {
-								hEdited.getHexagon().setX(Integer.parseInt(editHexagon.getTextX().getText()));
-								hEdited.getHexagon().setY(Integer.parseInt(editHexagon.getTextY().getText()));
-								hEdited.getHexagon().setR(Integer.parseInt(editHexagon.getTextR().getText()));
-								hEdited.setColor(editHexagon.getBtnBorderColor().getBackground());
-								hEdited.setInnerColor(editHexagon.getBtnInnerColor().getBackground());
-								
-								Shape newState= hEdited.clone();
-								
-								commandManager.executeCommand(
-						                new UpdateShapeCommand(model, model.getLastSelectedIndex(), oldState, newState, pnlCenter)
-						            );
-								updateUndoRedoButtons();
-					            pnlCenter.setIndexOfSelectedElement(-1);
-					            selectionChanged(0);
-								
+						        int x = Integer.parseInt(editHexagon.getTextX().getText());
+						        int y = Integer.parseInt(editHexagon.getTextY().getText());
+						        int r = Integer.parseInt(editHexagon.getTextR().getText());
+						        Color border = editHexagon.getBtnBorderColor().getBackground();
+						        Color inner = editHexagon.getBtnInnerColor().getBackground();
+						        
+						        HexagonAdapter hEdited = new HexagonAdapter(x, y, r, border, inner, false);
+						        Shape newState = hEdited.clone();
+						        
+						        commandManager.executeCommand(new UpdateShapeCommand(model, model.getLastSelectedIndex(), oldState, newState, pnlCenter));
+						        
+						        updateUndoRedoButtons();
+						        pnlCenter.setIndexOfSelectedElement(-1);
+						        selectionChanged(0);
+						        
 							} catch (Exception e2) {
 								// TODO: handle exception
 							}
