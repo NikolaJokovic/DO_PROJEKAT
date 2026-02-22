@@ -58,17 +58,6 @@ public class AddShape implements Command{
 	            return "POINT|" + p.getX() + "|" + p.getY() + "|" + colorToString(p.getColor());
 	        }
 
-	        if (s instanceof Circle ) {
-	            Circle c=(Circle) s;
-	        	
-	        	return "CIRCLE|" +
-	                   c.getCenter().getX() + "|" +
-	                   c.getCenter().getY() + "|" +
-	                   c.getRadius() + "|" +
-	                   colorToString(c.getColor()) + "|" +
-	                   colorToString(c.getInnerColor());
-	        }
-
 	        if (s instanceof Donut) {
 	        	Donut d=(Donut) s;
 	        	
@@ -79,6 +68,16 @@ public class AddShape implements Command{
 	                   d.getInnerRadius() + "|" +
 	                   colorToString(d.getColor()) + "|" +
 	                   colorToString(d.getInnerColor());
+	        }
+	        if (s instanceof Circle ) {
+	            Circle c=(Circle) s;
+	        	
+	        	return "CIRCLE|" +
+	                   c.getCenter().getX() + "|" +
+	                   c.getCenter().getY() + "|" +
+	                   c.getRadius() + "|" +
+	                   colorToString(c.getColor()) + "|" +
+	                   colorToString(c.getInnerColor());
 	        }
 
 	        if (s instanceof Rectangle) {

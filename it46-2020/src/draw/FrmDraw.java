@@ -7,6 +7,8 @@ import java.awt.Dimension;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JOptionPane;
 
@@ -37,6 +39,7 @@ import javax.swing.border.LineBorder;
 import controller.Command;
 import controller.CommandFactory;
 import controller.CommandManager;
+import controller.LogObserver;
 import controller.ModelObserver;
 import controller.RemoveShape;
 import controller.SaveDrawingStrategy;
@@ -77,6 +80,8 @@ public class FrmDraw extends JFrame {
 	private Color activeInnerColor  = Color.GRAY;
 	private JButton btnActiveBorder;
 	private JButton btnActiveInner;
+	private JTextArea txtLog;
+	private JScrollPane scrollLog;
 	
 	private DrawingModel model;
 	
@@ -111,7 +116,7 @@ public class FrmDraw extends JFrame {
 	public FrmDraw() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setTitle("IT 46-2020 Nikola Jokovic");
-		setBounds(100, 100, 580, 400);
+		setBounds(100, 100, 580, 500);
 		
 		model=new DrawingModel();
 		
@@ -658,6 +663,35 @@ public class FrmDraw extends JFrame {
 			}
 			
 		});
+		
+	JPanel logPanel = new JPanel();
+	logPanel.setLayout(new BorderLayout());
+	logPanel.setBorder(new LineBorder(Color.MAGENTA, 2));
+	logPanel.setPreferredSize(new Dimension(0, 80));
+	contentPane.add(logPanel,BorderLayout.SOUTH);
+		    
+	JLabel lblLog = new JLabel("Command Log:");
+	lblLog.setFont(new Font("Wide Latin", Font.BOLD, 10));
+	lblLog.setForeground(new Color(255, 0, 255));
+	logPanel.add(lblLog, BorderLayout.NORTH);
+	
+	txtLog = new JTextArea(8, 8); 
+	txtLog.setEditable(false);
+	txtLog.setFont(new Font("Monospaced", Font.PLAIN, 11));
+	txtLog.setBackground(Color.WHITE);
+	txtLog.setForeground(Color.BLACK);
+	scrollLog = new JScrollPane(txtLog);
+	scrollLog.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+	logPanel.add(scrollLog, BorderLayout.CENTER);
+		    
+		    
+	commandManager.addLogObserver(new LogObserver() {
+		@Override
+		public void onLogAdded(String logLine) {
+			txtLog.append(logLine +"\n");
+		}
+	});
+	
 	model.addObserver(new ModelObserver() {
 		@Override
 		public void update() {
@@ -668,6 +702,8 @@ public class FrmDraw extends JFrame {
 	});
 	
 	}
+	
+	
 	
 	public DrawingModel getModel() {
         return model;
@@ -726,14 +762,14 @@ public class FrmDraw extends JFrame {
 	
 	private void replayLog(List<String> lines) {
 	    for (String line : lines) {
-	    	 Command cmd = CommandFactory.fromLog(line, model.getShapes(), pnlCenter);
+	    	 Command cmd = CommandFactory.fromLog(line, model.getShapes(),model, pnlCenter);
 
 	    	    int a = JOptionPane.showConfirmDialog(this, "Execute next?\n" + line, "Replay",
 	    	            JOptionPane.YES_NO_OPTION);
 
 	    	    if (a != JOptionPane.YES_OPTION) break;
 
-	    	    commandManager.executeCommand(cmd);
+	    	    commandManager.executeCommandFromReplay(cmd);
 	    	    updateUndoRedoButtons();
 	    }
 	}

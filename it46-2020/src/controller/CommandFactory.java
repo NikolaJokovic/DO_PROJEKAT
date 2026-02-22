@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.util.List;
 import javax.swing.JComponent;
 
+import draw.DrawingModel;
+import draw.PnlDraw;
 import geometrija.Shape;
 import geometrija.Point;
 import geometrija.Line;
@@ -17,7 +19,7 @@ public class CommandFactory {
     private CommandFactory() {}
 
 
-    public static Command fromLog(String line, List<Shape> shapes, JComponent panel) {
+    public static Command fromLog(String line, List<Shape> shapes,DrawingModel model, JComponent panel) {
         if (line == null) throw new IllegalArgumentException("Log line is null");
         line = line.trim();
         if (line.isEmpty()) throw new IllegalArgumentException("Log line is empty");
@@ -37,6 +39,14 @@ public class CommandFactory {
                 Shape expected = parseShape(t, 2);
                 return new RemoveCmd(shapes, index, expected, panel);
             }
+            case "EDITED":{
+            	if (t.length < 2) throw new IllegalArgumentException("Bad EDITED line: " + line);
+            	Shape toEdit = parseShape(t,1);
+            	Shape edited= parseShape(t,8);
+            	
+            	int index = parseInt(t[2], "EDITED.index");
+            	return new EditCmd(index, toEdit, edited, panel,model);
+            }
 
             case "MOVED": {
                 if (t.length < 3) throw new IllegalArgumentException("Bad MOVED line: " + line);
@@ -52,7 +62,28 @@ public class CommandFactory {
                 int idx = parseInt(t[2], "MOVED.index");
                 return new LegacyMoveCmd(shapes, idx, action, panel);
             }
-
+            case "UNDO":{
+            	if (t.length < 2) throw new IllegalArgumentException("Bad UNDO line: " + line);
+                
+                StringBuilder originalLine = new StringBuilder();
+                for (int i = 1; i < t.length; i++) {
+                    if (i > 1) originalLine.append("|");
+                    originalLine.append(t[i]);
+                }
+                Command originalCmd = fromLog(originalLine.toString(), shapes,null, panel);
+                return new UndoReplayCmd(originalCmd, panel);
+            }
+           
+            case "REDO" :{
+            	 if (t.length < 2) throw new IllegalArgumentException("Bad REDO line: " + line);
+                 
+                 StringBuilder originalLine = new StringBuilder();
+                 for (int i = 1; i < t.length; i++) {
+                     if (i > 1) originalLine.append("|");
+                     originalLine.append(t[i]);
+                 }
+                 return fromLog(originalLine.toString(), shapes,null, panel);
+            }
             default:
                 throw new IllegalArgumentException("Unknown command type: " + kind + " in line: " + line);
         }
@@ -154,7 +185,69 @@ public class CommandFactory {
             return "REMOVED|" + index + "|" + shapeToLogString(expected);
         }
     }
-
+  private static final class EditCmd implements Command {
+    	
+      private final JComponent panel;
+      private DrawingModel model;
+      private final int index;
+      private final Shape toEdit; 
+      private Shape edited;        
+      
+      
+      private final CommandManager c = new CommandManager();
+      
+      private EditCmd( int index, Shape toEdit,Shape edited, JComponent panel,DrawingModel model) {
+          this.index = index;
+          this.toEdit = toEdit;
+          this.edited=edited;
+          this.panel = panel;
+          this.model=model;
+      }
+      
+      @Override
+      public void execute() {
+    	 model.updateShape(index, edited);
+    	  if (panel != null) panel.repaint();
+      }
+      
+      @Override
+      public void unexecute() {
+    	  model.updateShape(index, toEdit);
+          if (panel != null) panel.repaint();
+      }
+      
+      @Override
+      public String toLog() {
+    	  return "EDITED|"+ shapeToLogString(toEdit) + "|TO|" + shapeToLogString(edited);
+      }
+    }
+    
+    private static final class UndoReplayCmd implements Command {
+        private final Command wrappedCommand;
+        private final JComponent panel;
+        
+        private UndoReplayCmd(Command wrapped, JComponent panel) {
+            this.wrappedCommand = wrapped;
+            this.panel = panel;
+        }
+        
+        @Override
+        public void execute() {
+            wrappedCommand.unexecute();
+            if (panel != null) panel.repaint();
+        }
+        
+        @Override
+        public void unexecute() {
+            wrappedCommand.execute();
+            if (panel != null) panel.repaint();
+        }
+        
+        @Override
+        public String toLog() {
+            return "UNDO|" + wrappedCommand.toLog();
+        }
+    }
     // MOVED|ACTION|from|to
     private static final class MoveCmd implements Command {
         private final List<Shape> shapes;
@@ -252,6 +345,7 @@ public class CommandFactory {
         }
     }
 
+  
 
     private static Shape parseShape(String[] t, int start) {
         if (t.length <= start) throw new IllegalArgumentException("Missing shape in log");
@@ -295,24 +389,6 @@ public class CommandFactory {
                 c.setInnerColor(inner);
                 c.setSelected(false);
                 return c;
-            }
-
-            case "DONUT": {
-                int cx = parseInt(t[start + 1], "DONUT.cx");
-                int cy = parseInt(t[start + 2], "DONUT.cy");
-                int r  = parseInt(t[start + 3], "DONUT.r");
-                int ir = parseInt(t[start + 4], "DONUT.innerR");
-                Color border = parseColor(t[start + 5], "DONUT.border");
-                Color inner  = parseColor(t[start + 6], "DONUT.inner");
-
-                Donut d = new Donut();
-                d.setCenter(new Point(cx, cy));
-                d.setRadius(r);
-                d.setInnerRadius(ir);
-                d.setColor(border);
-                d.setInnerColor(inner);
-                d.setSelected(false);
-                return d;
             }
 
             case "RECTANGLE": {
@@ -410,17 +486,7 @@ public class CommandFactory {
                     + l.getEndPoint().getY() + "|"
                     + colorToString(l.getColor());
         }
-
-        if (s instanceof Circle) {
-            Circle c = (Circle) s;
-            return "CIRCLE|"
-                    + c.getCenter().getX() + "|"
-                    + c.getCenter().getY() + "|"
-                    + c.getRadius() + "|"
-                    + colorToString(c.getColor()) + "|"
-                    + colorToString(c.getInnerColor());
-        }
-
+        
         if (s instanceof Donut) {
             Donut d = (Donut) s;
             return "DONUT|"
@@ -430,6 +496,16 @@ public class CommandFactory {
                     + d.getInnerRadius() + "|"
                     + colorToString(d.getColor()) + "|"
                     + colorToString(d.getInnerColor());
+        }
+
+        if (s instanceof Circle) {
+            Circle c = (Circle) s;
+            return "CIRCLE|"
+                    + c.getCenter().getX() + "|"
+                    + c.getCenter().getY() + "|"
+                    + c.getRadius() + "|"
+                    + colorToString(c.getColor()) + "|"
+                    + colorToString(c.getInnerColor());
         }
 
         if (s instanceof Rectangle) {

@@ -3,6 +3,8 @@ package controller;
 import java.awt.Color;
 import java.util.ArrayList;
 
+import javax.swing.JComponent;
+
 import draw.DrawingModel;
 import draw.PnlDraw;
 import geometrija.Circle;
@@ -16,18 +18,19 @@ public class UpdateShapeCommand implements Command {
 
 	private final DrawingModel model;
     private final int index;
-    private final PnlDraw panel;
+    private final JComponent panel;
 
     private final Shape oldState;
     private final Shape newState; 
 
-    public UpdateShapeCommand(DrawingModel model, int index, Shape oldState, Shape newState, PnlDraw panel) {
+    public UpdateShapeCommand(DrawingModel model, int index, Shape oldState, Shape newState, JComponent panel) {
         this.model=model;
         this.index = index;
         this.oldState = oldState;
         this.newState = newState;
         this.panel = panel;
     }
+    
 
     @Override
     public void execute() {
@@ -50,7 +53,7 @@ public class UpdateShapeCommand implements Command {
     }
     @Override
 	public String toLog() {
-	    return "EDITED|" + shapeToLogString(oldState)+ " TO|"+ shapeToLogString(newState);
+	    return "EDITED|" + shapeToLogString(oldState)+ "|TO|"+ shapeToLogString(newState);
 	   
 	}
 	
@@ -59,6 +62,18 @@ public class UpdateShapeCommand implements Command {
 	        if (s instanceof Point ) {
 	        	Point p= (Point)s;
 	            return "POINT|" + p.getX() + "|" + p.getY() + "|" + colorToString(p.getColor());
+	        }
+	        
+	        if (s instanceof Donut) {
+	        	Donut d=(Donut) s;
+	        	
+	            return "DONUT|" +
+	                   d.getCenter().getX() + "|" +
+	                   d.getCenter().getY() + "|" +
+	                   d.getRadius() + "|" +
+	                   d.getInnerRadius() + "|" +
+	                   colorToString(d.getColor()) + "|" +
+	                   colorToString(d.getInnerColor());
 	        }
 
 	        if (s instanceof Circle ) {
@@ -72,17 +87,6 @@ public class UpdateShapeCommand implements Command {
 	                   colorToString(c.getInnerColor());
 	        }
 
-	        if (s instanceof Donut) {
-	        	Donut d=(Donut) s;
-	        	
-	            return "DONUT|" +
-	                   d.getCenter().getX() + "|" +
-	                   d.getCenter().getY() + "|" +
-	                   d.getRadius() + "|" +
-	                   d.getInnerRadius() + "|" +
-	                   colorToString(d.getColor()) + "|" +
-	                   colorToString(d.getInnerColor());
-	        }
 
 	        if (s instanceof Rectangle) {
 	        	Rectangle r= (Rectangle) s;
